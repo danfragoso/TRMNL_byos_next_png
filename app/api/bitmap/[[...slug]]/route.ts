@@ -19,7 +19,13 @@ export async function GET(
 		// Always await params as required by Next.js 14/15
 		const { slug = ["not-found"] } = await params;
 		const bitmapPath = Array.isArray(slug) ? slug.join("/") : slug;
-		const recipeSlug = bitmapPath.replace(".bmp", "");
+
+		// Detect format from file extension
+		const isPng = bitmapPath.endsWith(".png");
+		const format = isPng ? "png" : "bitmap";
+		const contentType = isPng ? "image/png" : "image/bmp";
+
+		const recipeSlug = bitmapPath.replace(/\.(bmp|png)$/, "");
 
 		// Get width, height, and grayscale from query parameters
 		const { searchParams } = new URL(req.url);
@@ -38,18 +44,19 @@ export async function GET(
 		const grayscaleLevels = grayscaleParam ? parseInt(grayscaleParam, 10) : 2;
 
 		logger.info(
-			`Bitmap request for: ${bitmapPath} in ${validWidth}x${validHeight} with ${grayscaleLevels} gray levels`,
+			`${format.toUpperCase()} request for: ${bitmapPath} in ${validWidth}x${validHeight} with ${grayscaleLevels} gray levels`,
 		);
 
 		const recipeId = screens[recipeSlug as keyof typeof screens]
 			? recipeSlug
 			: "simple-text";
 
-		const recipeBuffer = await renderRecipeBitmap(
+		const recipeBuffer = await renderRecipeImage(
 			recipeId,
 			validWidth,
 			validHeight,
 			grayscaleLevels,
+			format,
 		);
 
 		if (
@@ -58,15 +65,15 @@ export async function GET(
 			recipeBuffer.length === 0
 		) {
 			logger.warn(
-				`Failed to generate bitmap for ${recipeId}, returning fallback`,
+				`Failed to generate ${format} for ${recipeId}, returning fallback`,
 			);
-			const fallback = await renderFallbackBitmap();
+			const fallback = await renderFallbackImage(format, contentType);
 			return fallback;
 		}
 
 		return new Response(new Uint8Array(recipeBuffer), {
 			headers: {
-				"Content-Type": "image/bmp",
+				"Content-Type": contentType,
 				"Content-Length": recipeBuffer.length.toString(),
 			},
 		});
@@ -74,16 +81,17 @@ export async function GET(
 		logger.error("Error generating image:", error);
 
 		// Instead of returning an error, return the NotFoundScreen as a fallback
-		return await renderFallbackBitmap("Error occurred");
+		return await renderFallbackImage("bitmap", "image/bmp", "Error occurred");
 	}
 }
 
-const renderRecipeBitmap = cache(
+const renderRecipeImage = cache(
 	async (
 		recipeId: string,
 		width: number,
 		height: number,
 		grayscaleLevels: number = 2,
+		format: string = "bitmap",
 	) => {
 		const { config, Component, props, element } = await buildRecipeElement({
 			slug: recipeId,
@@ -104,15 +112,15 @@ const renderRecipeBitmap = cache(
 			config: config ?? null,
 			imageWidth: width,
 			imageHeight: height,
-			formats: ["bitmap"],
+			formats: [format],
 			grayscale: grayscaleLevels,
 		});
 
-		return renders.bitmap ?? Buffer.from([]);
+		return (format === "png" ? renders.png : renders.bitmap) ?? Buffer.from([]);
 	},
 );
 
-const renderFallbackBitmap = cache(async (slug: string = "not-found") => {
+const renderFallbackImage = cache(async (format: string = "bitmap", contentType: string = "image/bmp", slug: string = "not-found") => {
 	try {
 		const renders = await renderRecipeOutputs({
 			slug,
@@ -121,18 +129,19 @@ const renderFallbackBitmap = cache(async (slug: string = "not-found") => {
 			config: null,
 			imageWidth: DEFAULT_IMAGE_WIDTH,
 			imageHeight: DEFAULT_IMAGE_HEIGHT,
-			formats: ["bitmap"],
+			formats: [format],
 			grayscale: 2, // Default to 2 levels for fallback
 		});
 
-		if (!renders.bitmap) {
-			throw new Error("Missing bitmap buffer for fallback");
+		const buffer = format === "png" ? renders.png : renders.bitmap;
+		if (!buffer) {
+			throw new Error(`Missing ${format} buffer for fallback`);
 		}
 
-		return new Response(new Uint8Array(renders.bitmap), {
+		return new Response(new Uint8Array(buffer), {
 			headers: {
-				"Content-Type": "image/bmp",
-				"Content-Length": renders.bitmap.length.toString(),
+				"Content-Type": contentType,
+				"Content-Length": buffer.length.toString(),
 			},
 		});
 	} catch (fallbackError) {

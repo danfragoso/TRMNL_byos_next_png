@@ -449,14 +449,14 @@ export const buildErrorResponse = (
 	baseUrl: string,
 	uniqueId: string,
 ) => {
-	const notFoundImageUrl = `${baseUrl}/not-found.bmp`;
+	const notFoundImageUrl = `${baseUrl}/not-found.png`;
 	return NextResponse.json(
 		{
 			status: 500,
 			reset_firmware: true,
 			message,
 			image_url: notFoundImageUrl,
-			filename: `not-found_${uniqueId}.bmp`,
+			filename: `not-found_${uniqueId}.png`,
 		},
 		{ status: 200 },
 	);

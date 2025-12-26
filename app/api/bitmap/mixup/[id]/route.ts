@@ -19,7 +19,13 @@ export async function GET(
 ) {
 	try {
 		const { id } = await params;
-		const mixupId = id.replace(".bmp", "");
+
+		// Detect format from file extension
+		const isPng = id.endsWith(".png");
+		const format = isPng ? "png" : "bmp";
+		const contentType = isPng ? "image/png" : "image/bmp";
+
+		const mixupId = id.replace(/\.(bmp|png)$/, "");
 
 		// Get width, height, and grayscale from query parameters
 		const { searchParams } = new URL(req.url);
@@ -82,11 +88,12 @@ export async function GET(
 			width,
 			height,
 			grayscaleLevels,
+			format,
 		);
 
 		return new Response(new Uint8Array(compositeBuffer), {
 			headers: {
-				"Content-Type": "image/bmp",
+				"Content-Type": contentType,
 				"Content-Length": compositeBuffer.length.toString(),
 			},
 		});
@@ -136,7 +143,7 @@ async function renderSlot(
 }
 
 /**
- * Render all slots and composite them into a final bitmap
+ * Render all slots and composite them into a final image (bitmap or png)
  */
 async function renderMixupComposite(
 	slots: LayoutSlot[],
@@ -144,6 +151,7 @@ async function renderMixupComposite(
 	width: number,
 	height: number,
 	grayscaleLevels: number = 2,
+	format: string = "bmp",
 ): Promise<Buffer> {
 	// Render all slots in parallel
 	const slotRenders = await Promise.all(
@@ -192,6 +200,11 @@ async function renderMixupComposite(
 		.composite(overlays)
 		.png()
 		.toBuffer();
+
+	// If PNG format requested, return the PNG directly
+	if (format === "png") {
+		return compositedPng;
+	}
 
 	// Convert to BMP with dithering
 	const bmpBuffer = await renderBmp(compositedPng, {

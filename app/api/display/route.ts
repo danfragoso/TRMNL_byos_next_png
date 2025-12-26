@@ -51,8 +51,8 @@ export async function GET(request: Request) {
 			metadata: { headers },
 		});
 		return buildDisplayResponse(
-			`${baseUrl}/${DEFAULT_SCREEN}.bmp?grayscale=2`,
-			`${DEFAULT_SCREEN}_${uniqueId}.bmp`,
+			`${baseUrl}/${DEFAULT_SCREEN}.png?grayscale=2`,
+			`${DEFAULT_SCREEN}_${uniqueId}.png`,
 			DEFAULT_REFRESH_RATE,
 		);
 	}
@@ -116,12 +116,12 @@ export async function GET(request: Request) {
 						dynamicRefreshRate = 60;
 					}
 				}
-				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.bmp?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
 				break;
 
 			case DeviceDisplayMode.MIXUP:
 				if (device.mixup_id) {
-					imageUrl = `${baseUrl}/mixup/${device.mixup_id}.bmp?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+					imageUrl = `${baseUrl}/mixup/${device.mixup_id}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
 					const metadata = {
 						deviceId: device.friendly_id,
 						mixupId: device.mixup_id,
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
 						metadata,
 					});
 				} else {
-					imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.bmp?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+					imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
 				}
 				dynamicRefreshRate = calculateRefreshRate(
 					device.refresh_schedule as unknown as RefreshSchedule,
@@ -146,7 +146,7 @@ export async function GET(request: Request) {
 					180,
 					device.timezone || "UTC",
 				);
-				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.bmp?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
 				break;
 		}
 
@@ -164,7 +164,7 @@ export async function GET(request: Request) {
 
 		return buildDisplayResponse(
 			imageUrl,
-			`${screenToDisplay || "not-found"}_${uniqueId}.bmp`,
+			`${screenToDisplay || "not-found"}_${uniqueId}.png`,
 			dynamicRefreshRate,
 		);
 	} catch (_error) {
