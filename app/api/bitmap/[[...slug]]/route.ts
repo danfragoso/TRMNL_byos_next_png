@@ -22,7 +22,7 @@ export async function GET(
 
 		// Detect format from file extension
 		const isPng = bitmapPath.endsWith(".png");
-		const format = isPng ? "png" : "bitmap";
+		const format: "png" | "bitmap" = isPng ? "png" : "bitmap";
 		const contentType = isPng ? "image/png" : "image/bmp";
 
 		const recipeSlug = bitmapPath.replace(/\.(bmp|png)$/, "");
@@ -91,7 +91,7 @@ const renderRecipeImage = cache(
 		width: number,
 		height: number,
 		grayscaleLevels: number = 2,
-		format: string = "bitmap",
+		format: "png" | "bitmap" = "bitmap",
 	) => {
 		const { config, Component, props, element } = await buildRecipeElement({
 			slug: recipeId,
@@ -120,7 +120,7 @@ const renderRecipeImage = cache(
 	},
 );
 
-const renderFallbackImage = cache(async (format: string = "bitmap", contentType: string = "image/bmp", slug: string = "not-found") => {
+const renderFallbackImage = cache(async (format: "png" | "bitmap" = "bitmap", contentType: string = "image/bmp", slug: string = "not-found") => {
 	try {
 		const renders = await renderRecipeOutputs({
 			slug,

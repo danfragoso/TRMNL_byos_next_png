@@ -22,7 +22,7 @@ export async function GET(
 
 		// Detect format from file extension
 		const isPng = id.endsWith(".png");
-		const format = isPng ? "png" : "bmp";
+		const format: "png" | "bmp" = isPng ? "png" : "bmp";
 		const contentType = isPng ? "image/png" : "image/bmp";
 
 		const mixupId = id.replace(/\.(bmp|png)$/, "");
@@ -151,7 +151,7 @@ async function renderMixupComposite(
 	width: number,
 	height: number,
 	grayscaleLevels: number = 2,
-	format: string = "bmp",
+	format: "png" | "bmp" = "bmp",
 ): Promise<Buffer> {
 	// Render all slots in parallel
 	const slotRenders = await Promise.all(
