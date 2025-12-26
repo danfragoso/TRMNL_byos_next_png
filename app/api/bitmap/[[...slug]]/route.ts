@@ -43,7 +43,12 @@ export async function GET(
 		const validWidth = width > 0 ? width : DEFAULT_IMAGE_WIDTH;
 		const validHeight = height > 0 ? height : DEFAULT_IMAGE_HEIGHT;
 		const grayscaleLevels = grayscaleParam ? parseInt(grayscaleParam, 10) : 2;
-		const rotateAngle = rotateParam ? parseInt(rotateParam, 10) : 0;
+
+		// Auto-detect rotation: if width > height (landscape), rotate 90°
+		// This handles cases where display sends landscape dimensions (800x600)
+		// for a portrait screen (600x800)
+		const autoRotate = validWidth > validHeight ? 90 : 0;
+		const rotateAngle = rotateParam ? parseInt(rotateParam, 10) : autoRotate;
 
 		logger.info(
 			`${format.toUpperCase()} request for: ${bitmapPath} in ${validWidth}x${validHeight} with ${grayscaleLevels} gray levels${rotateAngle ? `, rotate ${rotateAngle}°` : ""}`,

@@ -39,6 +39,9 @@ export async function GET(
 			: DEFAULT_IMAGE_HEIGHT;
 		const grayscaleLevels = grayscaleParam ? parseInt(grayscaleParam, 10) : 2;
 
+		// Auto-detect rotation: if width > height (landscape), rotate 90°
+		const rotateAngle = width > height ? 90 : 0;
+
 		const { ready } = await checkDbConnection();
 		if (!ready) {
 			logger.error("Database not available for mixup rendering");
@@ -89,6 +92,7 @@ export async function GET(
 			height,
 			grayscaleLevels,
 			format,
+			rotateAngle,
 		);
 
 		return new Response(new Uint8Array(compositeBuffer), {
@@ -152,6 +156,7 @@ async function renderMixupComposite(
 	height: number,
 	grayscaleLevels: number = 2,
 	format: "png" | "bmp" = "bmp",
+	rotateAngle: number = 0,
 ): Promise<Buffer> {
 	// Render all slots in parallel
 	const slotRenders = await Promise.all(
@@ -189,7 +194,7 @@ async function renderMixupComposite(
 	}
 
 	// Create the base canvas and composite all overlays
-	const compositedPng = await sharp({
+	let compositedPng = await sharp({
 		create: {
 			width,
 			height,
@@ -200,6 +205,11 @@ async function renderMixupComposite(
 		.composite(overlays)
 		.png()
 		.toBuffer();
+
+	// Apply rotation if needed
+	if (rotateAngle && rotateAngle !== 0) {
+		compositedPng = await sharp(compositedPng).rotate(rotateAngle).png().toBuffer();
+	}
 
 	// If PNG format requested, return the PNG directly
 	if (format === "png") {
