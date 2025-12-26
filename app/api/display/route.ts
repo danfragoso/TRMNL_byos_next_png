@@ -74,15 +74,23 @@ export async function GET(request: Request) {
 		}
 
 		let screenToDisplay = device.screen;
-		const orientation = device.screen_orientation || "landscape";
-		const deviceWidth =
-			orientation === "landscape"
-				? device.screen_width || DEFAULT_IMAGE_WIDTH
-				: device.screen_height || DEFAULT_IMAGE_HEIGHT;
-		const deviceHeight =
-			orientation === "landscape"
-				? device.screen_height || DEFAULT_IMAGE_HEIGHT
-				: device.screen_width || DEFAULT_IMAGE_WIDTH;
+		const orientation = device.screen_orientation || "portrait";
+
+		// Physical screen dimensions
+		const screenWidth = device.screen_width || DEFAULT_IMAGE_WIDTH;
+		const screenHeight = device.screen_height || DEFAULT_IMAGE_HEIGHT;
+
+		// Determine if we need rotation
+		// Portrait screen (600x800): width < height
+		// Landscape screen (800x600): width > height
+		const isPhysicallyPortrait = screenWidth < screenHeight;
+		const wantsLandscape = orientation === "landscape";
+		const needsRotation = isPhysicallyPortrait && wantsLandscape;
+
+		// Render dimensions (swap if landscape on portrait screen)
+		const deviceWidth = needsRotation ? screenHeight : screenWidth;
+		const deviceHeight = needsRotation ? screenWidth : screenHeight;
+
 		const grayscaleLevels = getGrayscaleLevels(
 			(device as { grayscale?: number | null }).grayscale ?? null,
 		);
@@ -116,12 +124,14 @@ export async function GET(request: Request) {
 						dynamicRefreshRate = 60;
 					}
 				}
-				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+				const rotateParam = needsRotation ? "&rotate=90" : "";
+				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}${rotateParam}`;
 				break;
 
 			case DeviceDisplayMode.MIXUP:
+				const rotateParamMixup = needsRotation ? "&rotate=90" : "";
 				if (device.mixup_id) {
-					imageUrl = `${baseUrl}/mixup/${device.mixup_id}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+					imageUrl = `${baseUrl}/mixup/${device.mixup_id}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}${rotateParamMixup}`;
 					const metadata = {
 						deviceId: device.friendly_id,
 						mixupId: device.mixup_id,
@@ -131,7 +141,7 @@ export async function GET(request: Request) {
 						metadata,
 					});
 				} else {
-					imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+					imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}${rotateParamMixup}`;
 				}
 				dynamicRefreshRate = calculateRefreshRate(
 					device.refresh_schedule as unknown as RefreshSchedule,
@@ -141,12 +151,13 @@ export async function GET(request: Request) {
 				break;
 
 			default:
+				const rotateParamDefault = needsRotation ? "&rotate=90" : "";
 				dynamicRefreshRate = calculateRefreshRate(
 					device.refresh_schedule as unknown as RefreshSchedule,
 					180,
 					device.timezone || "UTC",
 				);
-				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}`;
+				imageUrl = `${baseUrl}/${screenToDisplay || "not-found"}.png?width=${deviceWidth}&height=${deviceHeight}&grayscale=${grayscaleLevels}${rotateParamDefault}`;
 				break;
 		}
 

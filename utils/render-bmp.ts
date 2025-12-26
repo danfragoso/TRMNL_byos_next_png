@@ -234,6 +234,7 @@ export interface RenderBmpOptions {
 	width?: number;
 	height?: number;
 	grayscale?: number; // Number of gray levels: 2 (black/white), 4, or 16
+	rotate?: number; // Rotation angle in degrees (90, 180, 270)
 }
 
 export async function renderBmp(png: Buffer, options: RenderBmpOptions = {}) {
@@ -567,14 +568,20 @@ export async function renderPng(png: Buffer, options: RenderBmpOptions = {}) {
 	);
 
 	// Convert back to PNG without alpha channel, explicitly set to grayscale
-	const pngBuffer = await sharp(Buffer.from(dithered), {
+	let sharpPipeline = sharp(Buffer.from(dithered), {
 		raw: {
 			width: targetWidth,
 			height: targetHeight,
 			channels: 1, // Grayscale, no alpha
 		},
-	})
-		.toColorspace('b-w') // Force grayscale colorspace
+	}).toColorspace('b-w'); // Force grayscale colorspace
+
+	// Apply rotation if specified
+	if (options.rotate && options.rotate !== 0) {
+		sharpPipeline = sharpPipeline.rotate(options.rotate);
+	}
+
+	const pngBuffer = await sharpPipeline
 		.png({
 			compressionLevel: 6,
 			palette: grayscale === 2, // Use palette for 2-level (black/white)

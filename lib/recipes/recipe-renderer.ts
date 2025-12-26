@@ -254,6 +254,7 @@ type RenderOptions = {
 	imageHeight: number;
 	formats?: RenderFormats;
 	grayscale?: number; // Number of gray levels: 2, 4, or 16
+	rotate?: number; // Rotation angle in degrees (90, 180, 270)
 };
 
 type RenderResults = {
@@ -276,6 +277,7 @@ export const renderRecipeOutputs = cache(
 		imageHeight,
 		formats = ["bitmap", "png"],
 		grayscale,
+		rotate,
 	}: RenderOptions): Promise<RenderResults> => {
 		const results = getDefaultRenderResults();
 		const imageOptions = getRecipeImageOptions(config, imageWidth, imageHeight);
@@ -340,6 +342,7 @@ export const renderRecipeOutputs = cache(
 							width: imageWidth,
 							height: imageHeight,
 							...(grayscale !== undefined && { grayscale }),
+							...(rotate !== undefined && { rotate }),
 						});
 						return { key: "png", value: pngBuffer };
 					} catch (error) {
