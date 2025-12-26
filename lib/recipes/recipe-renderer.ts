@@ -6,7 +6,7 @@ import { getScreenParams } from "@/app/actions/screens-params";
 import NotFoundScreen from "@/app/recipes/screens/not-found/not-found";
 import screens from "@/app/recipes/screens.json";
 import { getTakumiFonts } from "@/lib/fonts";
-import { DitheringMethod, renderBmp } from "@/utils/render-bmp";
+import { DitheringMethod, renderBmp, renderPng } from "@/utils/render-bmp";
 
 // Logging utility shared between recipe renderers
 export const logger = {
@@ -322,7 +322,7 @@ export const renderRecipeOutputs = cache(
 				(async () => {
 					try {
 						const element = createElement(Component, props);
-						const pngBuffer =
+						const rawPng =
 							rendererType === "satori"
 								? await renderWithSatori(
 										element,
@@ -334,6 +334,13 @@ export const renderRecipeOutputs = cache(
 										imageOptions.width,
 										imageOptions.height,
 									);
+						// Process PNG to remove alpha channel and apply grayscale/dithering
+						const pngBuffer = await renderPng(rawPng, {
+							ditheringMethod: DitheringMethod.FLOYD_STEINBERG,
+							width: imageWidth,
+							height: imageHeight,
+							...(grayscale !== undefined && { grayscale }),
+						});
 						return { key: "png", value: pngBuffer };
 					} catch (error) {
 						logger.error(`Error generating PNG for ${slug}:`, error);

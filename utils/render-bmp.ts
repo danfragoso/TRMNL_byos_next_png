@@ -512,3 +512,73 @@ export async function renderBmp(png: Buffer, options: RenderBmpOptions = {}) {
 
 	return buffer;
 }
+
+/**
+ * Render PNG with proper grayscale conversion (no alpha channel)
+ * Similar to renderBmp but outputs PNG format instead of BMP
+ */
+export async function renderPng(png: Buffer, options: RenderBmpOptions = {}) {
+	const {
+		ditheringMethod = DitheringMethod.FLOYD_STEINBERG,
+		inverted = false,
+		grayscale = 2,
+	} = options;
+
+	// Validate grayscale levels
+	const validLevels = [2, 4, 16];
+	if (!validLevels.includes(grayscale)) {
+		throw new Error(
+			`Invalid grayscale value: ${grayscale}. Must be one of: ${validLevels.join(", ")}`,
+		);
+	}
+
+	const targetWidth = options.width ?? 800;
+	const targetHeight = options.height ?? 480;
+
+	// Load image metadata
+	const metadata = await sharp(png).metadata();
+	const isDoubleSize =
+		metadata.width === targetWidth * 2 && metadata.height === targetHeight * 2;
+
+	// Resize if necessary and convert to grayscale
+	let image = sharp(png);
+	if (isDoubleSize) {
+		image = image.resize(targetWidth, targetHeight, {
+			kernel: sharp.kernel.nearest,
+		});
+	}
+
+	// Convert to grayscale and get raw buffer
+	const grayscaleImage = await image
+		.grayscale()
+		.raw()
+		.toBuffer({ resolveWithObject: true });
+
+	const { data } = grayscaleImage;
+
+	// Apply dithering
+	const dithered = applyDithering(
+		data,
+		targetWidth,
+		targetHeight,
+		ditheringMethod,
+		grayscale,
+		inverted,
+	);
+
+	// Convert back to PNG without alpha channel
+	const pngBuffer = await sharp(Buffer.from(dithered), {
+		raw: {
+			width: targetWidth,
+			height: targetHeight,
+			channels: 1, // Grayscale, no alpha
+		},
+	})
+		.png({
+			compressionLevel: 6,
+			palette: grayscale === 2, // Use palette for 2-level (black/white)
+		})
+		.toBuffer();
+
+	return pngBuffer;
+}
