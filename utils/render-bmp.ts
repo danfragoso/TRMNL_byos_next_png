@@ -566,7 +566,7 @@ export async function renderPng(png: Buffer, options: RenderBmpOptions = {}) {
 		inverted,
 	);
 
-	// Convert back to PNG without alpha channel
+	// Convert back to PNG without alpha channel, explicitly set to grayscale
 	const pngBuffer = await sharp(Buffer.from(dithered), {
 		raw: {
 			width: targetWidth,
@@ -574,6 +574,7 @@ export async function renderPng(png: Buffer, options: RenderBmpOptions = {}) {
 			channels: 1, // Grayscale, no alpha
 		},
 	})
+		.toColorspace('b-w') // Force grayscale colorspace
 		.png({
 			compressionLevel: 6,
 			palette: grayscale === 2, // Use palette for 2-level (black/white)
