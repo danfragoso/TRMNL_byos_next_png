@@ -150,6 +150,42 @@
 		"version": "0.1.0",
 		"category": "display-components"
 	},
+	"google-calendar": {
+		"title": "Google Calendar",
+		"published": true,
+		"createdAt": "2025-03-01T00:00:00Z",
+		"updatedAt": "2025-03-01T00:00:00Z",
+		"description": "A weekly calendar view component that displays events from Google Calendar. Shows a traditional week grid with time slots and events.",
+		"componentPath": "./screens/google-calendar",
+		"hasDataFetch": true,
+		"props": {
+			"events": [],
+			"startDate": ""
+		},
+		"params": {
+			"calendarId": {
+				"type": "string",
+				"label": "Calendar ID",
+				"description": "Your Google Calendar ID (usually your email address, or 'primary' for your main calendar)",
+				"default": "primary",
+				"placeholder": "your-email@gmail.com"
+			},
+			"apiKey": {
+				"type": "string",
+				"label": "Google API Key",
+				"description": "Your Google Calendar API key from Google Cloud Console. Alternatively, set GOOGLE_CALENDAR_API_KEY environment variable.",
+				"placeholder": "AIza..."
+			}
+		},
+		"tags": ["calendar", "google", "api", "live-data", "configurable", "productivity"],
+		"author": {
+			"name": "Claude",
+			"github": ""
+		},
+		"renderSettings": {},
+		"version": "0.1.0",
+		"category": "display-components"
+	},
 	"responsive-example": {
 		"title": "Responsive Example",
 		"published": true,
