@@ -48,7 +48,7 @@ export default function GoogleCalendar({
 	};
 
 	// Time slots from 7:00 AM to 8:00 PM (every 30 minutes)
-	const timeSlots = [];
+	const timeSlots: Array<{ hour: number; minute: number }> = [];
 	for (let hour = 7; hour <= 20; hour++) {
 		for (let minute = 0; minute < 60; minute += 30) {
 			timeSlots.push({ hour, minute });
