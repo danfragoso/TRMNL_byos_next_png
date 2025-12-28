@@ -336,9 +336,10 @@ export const renderRecipeOutputs = cache(
 										imageOptions.width,
 										imageOptions.height,
 									);
-						// Process PNG to remove alpha channel and apply grayscale/dithering
+						// Process PNG to remove alpha channel and convert to grayscale without dithering
+						// This keeps the PNG clean for Kindle which handles grayscale well
 						const pngBuffer = await renderPng(rawPng, {
-							ditheringMethod: DitheringMethod.FLOYD_STEINBERG,
+							ditheringMethod: DitheringMethod.NONE,
 							width: imageWidth,
 							height: imageHeight,
 							...(grayscale !== undefined && { grayscale }),

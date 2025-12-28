@@ -2,6 +2,7 @@ import sharp from "sharp";
 
 /** Dithering method options */
 export enum DitheringMethod {
+	NONE = "none",
 	FLOYD_STEINBERG = "floyd-steinberg",
 	ATKINSON = "atkinson",
 	BAYER = "bayer",
@@ -203,6 +204,16 @@ const applyDithering = (
 	inverted: boolean = false,
 ): Uint8Array => {
 	switch (method) {
+		case DitheringMethod.NONE:
+			// No dithering - just return the grayscale data as-is (optionally inverted)
+			if (inverted) {
+				const result = new Uint8Array(grayscale.length);
+				for (let i = 0; i < grayscale.length; i++) {
+					result[i] = 255 - grayscale[i];
+				}
+				return result;
+			}
+			return grayscale;
 		case DitheringMethod.FLOYD_STEINBERG:
 			return applyFloydSteinberg(
 				grayscale,

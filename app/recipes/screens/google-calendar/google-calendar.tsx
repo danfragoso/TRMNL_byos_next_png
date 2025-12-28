@@ -62,6 +62,17 @@ export default function GoogleCalendar({
 		return minute === 0 ? `${displayHour}${period}` : "";
 	};
 
+	// Parse date string to local Date, handling timezone issues
+	const parseEventDate = (dateString: string): Date => {
+		// If it's just a date (YYYY-MM-DD), treat it as local time, not UTC
+		if (dateString.length === 10 && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+			const [year, month, day] = dateString.split('-').map(Number);
+			return new Date(year, month - 1, day); // Month is 0-indexed
+		}
+		// Otherwise parse as normal (handles ISO datetime strings)
+		return new Date(dateString);
+	};
+
 	// Check if date is same day
 	const isSameDay = (date1: Date, date2: Date) => {
 		return (
@@ -74,7 +85,7 @@ export default function GoogleCalendar({
 	// Get events for a specific day
 	const getEventsForDay = (date: Date) => {
 		return events.filter((event) => {
-			const eventStart = new Date(event.start);
+			const eventStart = parseEventDate(event.start);
 			return isSameDay(eventStart, date);
 		});
 	};
@@ -91,8 +102,8 @@ export default function GoogleCalendar({
 
 	// Calculate event position and height
 	const getEventStyle = (event: CalendarEvent) => {
-		const start = new Date(event.start);
-		const end = new Date(event.end);
+		const start = parseEventDate(event.start);
+		const end = parseEventDate(event.end);
 
 		const startHour = start.getHours();
 		const startMinute = start.getMinutes();
