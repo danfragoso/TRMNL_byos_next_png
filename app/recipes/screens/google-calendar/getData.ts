@@ -13,6 +13,7 @@ interface CalendarEvent {
 interface CalendarParams {
 	calendarId?: string;
 	apiKey?: string;
+	icalUrl?: string;
 	maxResults?: number;
 }
 
@@ -33,6 +34,98 @@ interface GoogleCalendarEvent {
 
 interface GoogleCalendarResponse {
 	items?: GoogleCalendarEvent[];
+}
+
+/**
+ * Parse iCal format and extract events
+ */
+async function fetchICalEvents(icalUrl: string): Promise<CalendarEvent[] | null> {
+	try {
+		const response = await fetch(icalUrl, {
+			headers: {
+				Accept: "text/calendar",
+			},
+			next: { revalidate: 0 },
+		});
+
+		if (!response.ok) {
+			throw new Error(`iCal fetch responded with status: ${response.status}`);
+		}
+
+		const icalData = await response.text();
+		const events: CalendarEvent[] = [];
+
+		// Simple iCal parser - split by VEVENT blocks
+		const eventBlocks = icalData.split("BEGIN:VEVENT");
+
+		for (let i = 1; i < eventBlocks.length; i++) {
+			const block = eventBlocks[i];
+			const endIndex = block.indexOf("END:VEVENT");
+			if (endIndex === -1) continue;
+
+			const eventData = block.substring(0, endIndex);
+
+			// Extract fields using regex
+			const summaryMatch = eventData.match(/SUMMARY:(.+)/);
+			const startMatch = eventData.match(/DTSTART[;:](.+)/);
+			const endMatch = eventData.match(/DTEND[;:](.+)/);
+			const uidMatch = eventData.match(/UID:(.+)/);
+
+			if (!startMatch || !endMatch) continue;
+
+			const summary = summaryMatch ? summaryMatch[1].trim() : "Untitled Event";
+			let startStr = startMatch[1].trim();
+			let endStr = endMatch[1].trim();
+			const uid = uidMatch ? uidMatch[1].trim() : `event-${i}`;
+
+			// Handle VALUE=DATE format (all-day events)
+			const isAllDay = startStr.length === 8; // YYYYMMDD format
+
+			// Parse date/datetime
+			const parseICalDate = (dateStr: string): string => {
+				// Remove VALUE=DATE: prefix if present
+				dateStr = dateStr.replace(/^[^:]*:/, "");
+
+				if (dateStr.length === 8) {
+					// All-day event: YYYYMMDD
+					const year = dateStr.substring(0, 4);
+					const month = dateStr.substring(4, 6);
+					const day = dateStr.substring(6, 8);
+					return `${year}-${month}-${day}`;
+				} else {
+					// DateTime: YYYYMMDDTHHMMSS or YYYYMMDDTHHMMSSZ
+					const year = dateStr.substring(0, 4);
+					const month = dateStr.substring(4, 6);
+					const day = dateStr.substring(6, 8);
+					const hour = dateStr.substring(9, 11);
+					const minute = dateStr.substring(11, 13);
+					const second = dateStr.substring(13, 15);
+					return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+				}
+			};
+
+			events.push({
+				id: uid,
+				title: summary,
+				start: parseICalDate(startStr),
+				end: parseICalDate(endStr),
+				allDay: isAllDay,
+			});
+		}
+
+		return events;
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		if (
+			errorMessage.includes("prerender") ||
+			errorMessage.includes("HANGING_PROMISE_REJECTION") ||
+			errorMessage.includes("prerender is complete")
+		) {
+			return null;
+		}
+		console.error("Error fetching iCal events:", error);
+		return null;
+	}
 }
 
 /**
@@ -131,21 +224,23 @@ async function fetchCalendarEvents(
  * Fetch calendar data without caching
  */
 async function fetchCalendarDataNoCache(params?: CalendarParams) {
+	const icalUrl = params?.icalUrl || process.env.GOOGLE_CALENDAR_ICAL_URL;
 	const calendarId = params?.calendarId || "primary";
 	const apiKey = params?.apiKey || process.env.GOOGLE_CALENDAR_API_KEY || "";
 	const maxResults = params?.maxResults || 50;
 
-	if (!apiKey) {
-		console.warn(
-			"Google Calendar API key not provided. Set GOOGLE_CALENDAR_API_KEY environment variable or pass apiKey parameter.",
-		);
-		return {
-			events: [],
-			startDate: new Date().toISOString(),
-		};
-	}
+	let events: CalendarEvent[] | null = null;
 
-	const events = await fetchCalendarEvents(calendarId, apiKey, maxResults);
+	// Prefer iCal URL if provided
+	if (icalUrl) {
+		events = await fetchICalEvents(icalUrl);
+	} else if (apiKey) {
+		events = await fetchCalendarEvents(calendarId, apiKey, maxResults);
+	} else {
+		console.warn(
+			"Neither iCal URL nor Google Calendar API key provided. Set GOOGLE_CALENDAR_ICAL_URL or GOOGLE_CALENDAR_API_KEY environment variable.",
+		);
+	}
 
 	if (!events) {
 		return {
@@ -154,10 +249,18 @@ async function fetchCalendarDataNoCache(params?: CalendarParams) {
 		};
 	}
 
-	const { timeMin } = getWeekBounds();
+	// Filter events to current week only
+	const { timeMin, timeMax } = getWeekBounds();
+	const weekStart = new Date(timeMin);
+	const weekEnd = new Date(timeMax);
+
+	const filteredEvents = events.filter((event) => {
+		const eventStart = new Date(event.start);
+		return eventStart >= weekStart && eventStart <= weekEnd;
+	});
 
 	return {
-		events,
+		events: filteredEvents,
 		startDate: timeMin,
 	};
 }
@@ -167,24 +270,38 @@ async function fetchCalendarDataNoCache(params?: CalendarParams) {
  */
 const getCachedCalendarData = unstable_cache(
 	async (params?: CalendarParams) => {
+		const icalUrl = params?.icalUrl || process.env.GOOGLE_CALENDAR_ICAL_URL;
 		const calendarId = params?.calendarId || "primary";
 		const apiKey = params?.apiKey || process.env.GOOGLE_CALENDAR_API_KEY || "";
 		const maxResults = params?.maxResults || 50;
 
-		if (!apiKey) {
-			throw new Error("API key not provided - skip caching");
-		}
+		let events: CalendarEvent[] | null = null;
 
-		const events = await fetchCalendarEvents(calendarId, apiKey, maxResults);
+		// Prefer iCal URL if provided
+		if (icalUrl) {
+			events = await fetchICalEvents(icalUrl);
+		} else if (apiKey) {
+			events = await fetchCalendarEvents(calendarId, apiKey, maxResults);
+		} else {
+			throw new Error("No calendar source provided - skip caching");
+		}
 
 		if (!events) {
 			throw new Error("Empty or invalid data - skip caching");
 		}
 
-		const { timeMin } = getWeekBounds();
+		// Filter events to current week only
+		const { timeMin, timeMax } = getWeekBounds();
+		const weekStart = new Date(timeMin);
+		const weekEnd = new Date(timeMax);
+
+		const filteredEvents = events.filter((event) => {
+			const eventStart = new Date(event.start);
+			return eventStart >= weekStart && eventStart <= weekEnd;
+		});
 
 		return {
-			events,
+			events: filteredEvents,
 			startDate: timeMin,
 		};
 	},

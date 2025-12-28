@@ -163,17 +163,23 @@
 			"startDate": ""
 		},
 		"params": {
+			"icalUrl": {
+				"type": "string",
+				"label": "iCal URL",
+				"description": "Public iCal URL from Google Calendar or other calendar service. Alternatively, set GOOGLE_CALENDAR_ICAL_URL environment variable. (Preferred method - no API key needed!)",
+				"placeholder": "https://calendar.google.com/calendar/ical/..."
+			},
 			"calendarId": {
 				"type": "string",
-				"label": "Calendar ID",
-				"description": "Your Google Calendar ID (usually your email address, or 'primary' for your main calendar)",
+				"label": "Calendar ID (API method)",
+				"description": "Your Google Calendar ID (usually your email address, or 'primary' for your main calendar). Only needed if using API key instead of iCal URL.",
 				"default": "primary",
 				"placeholder": "your-email@gmail.com"
 			},
 			"apiKey": {
 				"type": "string",
-				"label": "Google API Key",
-				"description": "Your Google Calendar API key from Google Cloud Console. Alternatively, set GOOGLE_CALENDAR_API_KEY environment variable.",
+				"label": "Google API Key (API method)",
+				"description": "Your Google Calendar API key from Google Cloud Console. Only needed if not using iCal URL. Set GOOGLE_CALENDAR_API_KEY environment variable alternatively.",
 				"placeholder": "AIza..."
 			}
 		},

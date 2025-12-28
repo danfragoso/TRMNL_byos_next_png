@@ -117,13 +117,13 @@ export default function GoogleCalendar({
 		<PreSatori width={width} height={height}>
 			<div className="flex flex-col w-full h-full bg-white text-black font-mono">
 				{/* Header with days */}
-				<div className="flex border-b border-black">
-					<div style={{ width: columnWidth }} className="border-r border-black" />
+				<div className="flex" style={{ borderBottom: "3px solid black" }}>
+					<div style={{ width: columnWidth, borderRight: "3px solid black" }} />
 					{weekDays.map((day, i) => (
 						<div
 							key={i}
-							style={{ width: columnWidth }}
-							className="border-r border-black p-1 text-center text-xs"
+							style={{ width: columnWidth, borderRight: "3px solid black", fontSize: "16px" }}
+							className="p-1 text-center font-bold"
 						>
 							{formatDayHeader(day)}
 						</div>
@@ -131,10 +131,10 @@ export default function GoogleCalendar({
 				</div>
 
 				{/* All-day events row */}
-				<div className="flex border-b border-black" style={{ minHeight: allDayRowHeight }}>
+				<div className="flex" style={{ minHeight: allDayRowHeight, borderBottom: "3px solid black" }}>
 					<div
-						style={{ width: columnWidth }}
-						className="border-r border-black p-1 text-xs"
+						style={{ width: columnWidth, borderRight: "3px solid black", fontSize: "14px" }}
+						className="p-1 font-bold"
 					>
 						all-day
 					</div>
@@ -143,14 +143,14 @@ export default function GoogleCalendar({
 						return (
 							<div
 								key={i}
-								style={{ width: columnWidth }}
-								className="border-r border-black p-1 relative"
+								style={{ width: columnWidth, borderRight: "3px solid black" }}
+								className="p-1 relative"
 							>
 								{allDayEvents.map((event, j) => (
 									<div
 										key={j}
-										className="bg-black text-white text-xs p-1 mb-1 overflow-hidden"
-										style={{ maxHeight: "20px" }}
+										className="bg-black text-white p-1 mb-1 overflow-hidden font-bold"
+										style={{ maxHeight: "24px", fontSize: "13px" }}
 									>
 										{event.title}
 									</div>
@@ -172,8 +172,12 @@ export default function GoogleCalendar({
 									style={{
 										width: columnWidth,
 										height: rowHeight,
+										borderRight: "3px solid black",
+										borderBottom: "2px solid #666",
+										fontSize: "14px",
+										fontWeight: label ? "bold" : "normal",
 									}}
-									className="border-r border-black border-b border-gray-300 p-1 text-xs"
+									className="p-1"
 								>
 									{label}
 								</div>
@@ -192,8 +196,9 @@ export default function GoogleCalendar({
 										style={{
 											width: columnWidth,
 											height: timeSlots.length * rowHeight,
+											borderRight: "3px solid black",
 										}}
-										className="border-r border-black relative"
+										className="relative"
 									>
 										{/* Time slot grid lines */}
 										{timeSlots.map((_, i) => (
@@ -201,8 +206,8 @@ export default function GoogleCalendar({
 												key={i}
 												style={{
 													height: rowHeight,
+													borderBottom: "2px solid #666",
 												}}
-												className="border-b border-gray-300"
 											/>
 										))}
 
@@ -212,10 +217,11 @@ export default function GoogleCalendar({
 											return (
 												<div
 													key={eventIndex}
-													className="absolute left-0 right-0 bg-black text-white text-xs p-1 overflow-hidden"
+													className="absolute left-0 right-0 bg-black text-white p-1 overflow-hidden font-bold"
 													style={{
 														top: style.top * rowHeight,
 														height: style.height * rowHeight,
+														fontSize: "13px",
 													}}
 												>
 													{event.title}
